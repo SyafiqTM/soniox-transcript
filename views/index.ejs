@@ -7,87 +7,96 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="page-shell">
-      <section class="hero">
-        <p class="hero__eyebrow">Soniox Real-Time Demo</p>
-        <h1>Switch roles and simulate the whole support call yourself.</h1>
-        <p>
-          Use the microphone to record each turn, flip between Customer and Agent,
-          and save the transcript once the conversation feels complete.
-        </p>
-      </section>
+    <div class="app-layout">
 
-      <section class="grid">
-        <aside class="panel">
-          <h2>Controls</h2>
+      <!-- ── Top bar ── -->
+      <header class="topbar">
+        <div class="topbar__brand">
+          <span class="topbar__logo" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </span>
+          <div>
+            <div class="topbar__name">Soniox Transcript</div>
+            <div class="topbar__subtitle"><%= defaultModel %> &middot; <%= defaultLanguageHint %></div>
+          </div>
+        </div>
 
+        <div class="topbar__controls">
           <div class="role-toggle" aria-label="Speaker role">
-            <button
-              class="role-button is-active"
-              type="button"
-              data-role-button="customer"
-              aria-pressed="true"
-            >
-              Customer
-            </button>
-            <button
-              class="role-button"
-              type="button"
-              data-role-button="agent"
-              aria-pressed="false"
-            >
-              Agent
-            </button>
+            <button class="role-btn" type="button" data-role-button="customer" aria-pressed="false">Customer</button>
+            <button class="role-btn" type="button" data-role-button="agent" aria-pressed="false">Agent</button>
           </div>
 
-          <div class="action-stack">
-            <button class="action-button" type="button" data-action="start-turn">
-              Record turn
+          <div class="record-controls">
+            <button class="rec-btn rec-btn--start" type="button" data-action="start-turn">
+              <span class="recording-dot" aria-hidden="true"></span>
+              Rec
             </button>
-            <button
-              class="action-button action-button--secondary"
-              type="button"
-              data-action="stop-turn"
-            >
-              Finish turn
+            <button class="rec-btn rec-btn--stop" type="button" data-action="stop-turn">
+              <span class="btn-icon" aria-hidden="true">&#9632;</span>
+              Stop
             </button>
-            <button
-              class="action-button action-button--ghost"
-              type="button"
-              data-action="save-session"
-            >
-              Save conversation
+            <button class="rec-btn rec-btn--save" type="button" data-action="save-session">
+              <span class="btn-icon" aria-hidden="true">&uarr;</span>
+              Save
             </button>
           </div>
+        </div>
+      </header>
 
-          <section class="panel status-card">
-            <h3>Session status</h3>
-            <p class="status-card__row" data-status-text></p>
-            <p class="status-card__row status-card__error" data-error-text></p>
-            <a class="saved-link" data-saved-link hidden></a>
-          </section>
-        </aside>
+      <!-- ── Two-column main area ── -->
+      <div class="main-grid">
 
-        <div class="panel timeline-card">
-          <div class="timeline-card__header">
-            <div>
-              <h2>Conversation</h2>
-              <p>Model: <%= defaultModel %> | Language hint: <%= defaultLanguageHint %></p>
+        <!-- Left: session search + history -->
+        <aside class="search-panel">
+          <div class="search-panel__header">
+            <p class="search-panel__title">Session History</p>
+            <div class="search-box">
+              <span class="search-box__icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input
+                class="search-input"
+                type="search"
+                placeholder="Search sessions&hellip;"
+                data-search-input
+                aria-label="Search sessions"
+              />
             </div>
           </div>
+          <div class="session-list" data-session-list>
+            <p class="empty-sessions">Loading&hellip;</p>
+          </div>
+        </aside>
 
-          <section class="panel draft-card">
-            <h3>Current live draft</h3>
-            <div class="draft-card__box" data-draft-text></div>
-          </section>
+        <!-- Right: live conversation -->
+        <main class="conversation-panel">
+          <div class="status-bar" data-status-bar>
+            <span class="status-bar__dot" aria-hidden="true"></span>
+            <span class="status-bar__text" data-status-text>Ready to record the first turn.</span>
+            <span class="status-bar__error" data-error-text></span>
+            <a class="saved-link" data-saved-link hidden></a>
+          </div>
 
-          <section class="turn-list" data-turn-list></section>
-          <section class="empty-state" data-empty-state>
-            No turns yet. Record the first side of the conversation to start building the transcript.
-          </section>
-        </div>
-      </section>
-    </main>
+          <div class="conversation-scroll" data-conversation-scroll>
+            <div class="draft-area" data-draft-area hidden>
+              <div class="draft-label">Live draft</div>
+              <div class="draft-text" data-draft-text></div>
+            </div>
+
+            <div class="turn-list" data-turn-list></div>
+
+            <div class="empty-state" data-empty-state>
+              <div class="empty-state__icon" aria-hidden="true">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="empty-state__text">No turns yet. Hit <strong>Rec</strong> to start the conversation.</p>
+            </div>
+          </div>
+        </main>
+
+      </div>
+    </div>
 
     <script type="module" src="/app.js"></script>
   </body>

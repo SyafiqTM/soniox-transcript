@@ -122,6 +122,15 @@ export function createApp({ sonioxService, sessionStore }) {
     }
   });
 
+  app.get("/api/sessions", async (req, res, next) => {
+    try {
+      const sessions = await sessionStore.listSessions();
+      res.json(sessions);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/sessions/:id", async (req, res, next) => {
     try {
       const session = await sessionStore.getSession(req.params.id);
