@@ -16,24 +16,32 @@ const state = {
   recording: null,
   recordingDone: null,
   isRecording: false,
-  saveUrl: null
+  saveUrl: null,
+  allSessions: [],
+  searchQuery: ""
 };
 
 const elements = {
-  roleButtons: [...document.querySelectorAll("[data-role-button]")],
-  startButton: document.querySelector("[data-action='start-turn']"),
-  stopButton: document.querySelector("[data-action='stop-turn']"),
-  saveButton: document.querySelector("[data-action='save-session']"),
-  draftText: document.querySelector("[data-draft-text]"),
-  turnList: document.querySelector("[data-turn-list]"),
-  statusText: document.querySelector("[data-status-text]"),
-  errorText: document.querySelector("[data-error-text]"),
-  emptyState: document.querySelector("[data-empty-state]"),
-  savedLink: document.querySelector("[data-saved-link]")
+  roleButtons:        [...document.querySelectorAll("[data-role-button]")],
+  startButton:        document.querySelector("[data-action='start-turn']"),
+  stopButton:         document.querySelector("[data-action='stop-turn']"),
+  saveButton:         document.querySelector("[data-action='save-session']"),
+  draftArea:          document.querySelector("[data-draft-area]"),
+  draftText:          document.querySelector("[data-draft-text]"),
+  turnList:           document.querySelector("[data-turn-list]"),
+  statusBar:          document.querySelector("[data-status-bar]"),
+  statusText:         document.querySelector("[data-status-text]"),
+  errorText:          document.querySelector("[data-error-text]"),
+  emptyState:         document.querySelector("[data-empty-state]"),
+  savedLink:          document.querySelector("[data-saved-link]"),
+  sessionList:        document.querySelector("[data-session-list]"),
+  searchInput:        document.querySelector("[data-search-input]"),
+  conversationScroll: document.querySelector("[data-conversation-scroll]")
 };
 
-function setStatus(message) {
+function setStatus(message, isRecording = false) {
   elements.statusText.textContent = message;
+  elements.statusBar.classList.toggle("status-bar--recording", isRecording);
 }
 
 function setError(message) {
@@ -55,29 +63,37 @@ function renderTurns() {
   elements.emptyState.hidden = turns.length > 0;
 
   for (const turn of turns) {
-    const item = document.createElement("article");
-    item.className = `turn-card turn-card--${turn.role}`;
+    const card = document.createElement("div");
+    card.className = `turn-card turn-card--${turn.role}`;
 
     const role = document.createElement("p");
     role.className = "turn-card__role";
     role.textContent = turn.role === "customer" ? "Customer" : "Agent";
 
-    const text = document.createElement("p");
-    text.className = "turn-card__text";
-    text.textContent = turn.text;
+    const bubble = document.createElement("div");
+    bubble.className = "turn-card__bubble";
+    bubble.textContent = turn.text;
 
     const time = document.createElement("p");
     time.className = "turn-card__time";
     time.textContent = new Date(turn.endedAt).toLocaleTimeString();
 
-    item.append(role, text, time);
-    elements.turnList.append(item);
+    card.append(role, bubble, time);
+    elements.turnList.append(card);
+  }
+
+  if (turns.length > 0) {
+    elements.conversationScroll.scrollTop = elements.conversationScroll.scrollHeight;
   }
 }
 
 function renderDraft() {
-  const text = getDraftText(state.conversation);
-  elements.draftText.textContent = text || "Waiting for speech...";
+  if (state.isRecording) {
+    elements.draftArea.hidden = false;
+    elements.draftText.textContent = getDraftText(state.conversation) || "Listening\u2026";
+  } else {
+    elements.draftArea.hidden = true;
+  }
 }
 
 function updateControls() {
@@ -85,6 +101,7 @@ function updateControls() {
   elements.stopButton.disabled = !state.isRecording;
   elements.saveButton.disabled =
     state.isRecording || state.conversation.turns.length === 0;
+  elements.startButton.classList.toggle("is-active", state.isRecording);
 }
 
 async function fetchTemporaryKey() {
@@ -149,7 +166,7 @@ function cleanupRecording() {
 
 async function startTurn() {
   setError("");
-  setStatus(`Listening as ${state.selectedRole}...`);
+  setStatus(`Listening as ${state.selectedRole}\u2026`, true);
 
   try {
     const { client, finished } = await createRecording();
@@ -158,6 +175,7 @@ async function startTurn() {
     state.isRecording = true;
     updateRoleButtons();
     updateControls();
+    renderDraft();
     await state.recording.start({
       model: state.model,
       languageHints: [state.languageHint],
@@ -175,7 +193,7 @@ async function stopTurn() {
     return;
   }
 
-  setStatus("Finishing the current turn...");
+  setStatus("Finishing the current turn\u2026");
 
   try {
     await state.recording.stop();
@@ -198,7 +216,7 @@ async function stopTurn() {
 
 async function saveSession() {
   setError("");
-  setStatus("Saving the conversation...");
+  setStatus("Saving the conversation\u2026");
 
   const payload = {
     startedAt: state.startedAt,
@@ -225,11 +243,67 @@ async function saveSession() {
     state.saveUrl = `/sessions/${result.sessionId}`;
     elements.savedLink.href = state.saveUrl;
     elements.savedLink.hidden = false;
-    elements.savedLink.textContent = `Open saved session ${result.sessionId}`;
+    elements.savedLink.textContent = `View saved session \u2197`;
     setStatus("Conversation saved.");
+    await loadSessionHistory();
   } catch (error) {
     setError(error.message || "Unable to save the conversation.");
     setStatus("Save failed.");
+  }
+}
+
+// ── Session history ───────────────────────────────────────────────────────────
+
+async function loadSessionHistory() {
+  try {
+    const res = await fetch("/api/sessions");
+    if (!res.ok) return;
+    state.allSessions = await res.json();
+    renderSessionList();
+  } catch {
+    // silently ignore; sidebar stays with its current content
+  }
+}
+
+function renderSessionList() {
+  const query = state.searchQuery.toLowerCase().trim();
+  const filtered = query
+    ? state.allSessions.filter(s => s.id.toLowerCase().includes(query))
+    : state.allSessions;
+
+  elements.sessionList.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const msg = document.createElement("p");
+    msg.className = "empty-sessions";
+    msg.textContent = query ? "No sessions match your search." : "No saved sessions yet.";
+    elements.sessionList.appendChild(msg);
+    return;
+  }
+
+  for (const session of filtered) {
+    const item = document.createElement("a");
+    item.className = "session-item";
+    item.href = `/sessions/${session.id}`;
+
+    const date = new Date(session.startedAt).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const turns = session.turnCount;
+
+    const idEl = document.createElement("div");
+    idEl.className = "session-item__id";
+    idEl.textContent = session.id;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "session-item__meta";
+    metaEl.innerHTML = `<span>${date}</span><span class="session-item__badge">${turns} turn${turns !== 1 ? "s" : ""}</span>`;
+
+    item.append(idEl, metaEl);
+    elements.sessionList.appendChild(item);
   }
 }
 
@@ -245,8 +319,16 @@ elements.startButton.addEventListener("click", startTurn);
 elements.stopButton.addEventListener("click", stopTurn);
 elements.saveButton.addEventListener("click", saveSession);
 
+if (elements.searchInput) {
+  elements.searchInput.addEventListener("input", (e) => {
+    state.searchQuery = e.target.value;
+    renderSessionList();
+  });
+}
+
 updateRoleButtons();
 renderDraft();
 renderTurns();
 updateControls();
 setStatus("Ready to record the first turn.");
+loadSessionHistory();
