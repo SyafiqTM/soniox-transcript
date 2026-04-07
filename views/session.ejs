@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <p class="hero__eyebrow">Saved Transcript</p>
+        <h1>Conversation <%= session.id %></h1>
+        <p>
+          Recorded with <%= session.model %> and saved as a local JSON session.
+        </p>
+      </section>
+
+      <section class="panel timeline-card">
+        <div class="timeline-card__header">
+          <div>
+            <h2>Transcript</h2>
+            <p>Started: <%= new Date(session.startedAt).toLocaleString() %></p>
+          </div>
+        </div>
+
+        <section class="turn-list">
+          <% session.turns.forEach((turn) => { %>
+            <article class="turn-card turn-card--<%= turn.role %>">
+              <p class="turn-card__role"><%= turn.role %></p>
+              <p class="turn-card__text"><%= turn.text %></p>
+              <p class="turn-card__time"><%= new Date(turn.endedAt).toLocaleTimeString() %></p>
+            </article>
+          <% }) %>
+        </section>
+
+        <a class="back-link" href="/">Back to live simulator</a>
+      </section>
+    </main>
+  </body>
+</html>

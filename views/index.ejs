@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <p class="hero__eyebrow">Soniox Real-Time Demo</p>
+        <h1>Switch roles and simulate the whole support call yourself.</h1>
+        <p>
+          Use the microphone to record each turn, flip between Customer and Agent,
+          and save the transcript once the conversation feels complete.
+        </p>
+      </section>
+
+      <section class="grid">
+        <aside class="panel">
+          <h2>Controls</h2>
+
+          <div class="role-toggle" aria-label="Speaker role">
+            <button
+              class="role-button is-active"
+              type="button"
+              data-role-button="customer"
+              aria-pressed="true"
+            >
+              Customer
+            </button>
+            <button
+              class="role-button"
+              type="button"
+              data-role-button="agent"
+              aria-pressed="false"
+            >
+              Agent
+            </button>
+          </div>
+
+          <div class="action-stack">
+            <button class="action-button" type="button" data-action="start-turn">
+              Record turn
+            </button>
+            <button
+              class="action-button action-button--secondary"
+              type="button"
+              data-action="stop-turn"
+            >
+              Finish turn
+            </button>
+            <button
+              class="action-button action-button--ghost"
+              type="button"
+              data-action="save-session"
+            >
+              Save conversation
+            </button>
+          </div>
+
+          <section class="panel status-card">
+            <h3>Session status</h3>
+            <p class="status-card__row" data-status-text></p>
+            <p class="status-card__row status-card__error" data-error-text></p>
+            <a class="saved-link" data-saved-link hidden></a>
+          </section>
+        </aside>
+
+        <div class="panel timeline-card">
+          <div class="timeline-card__header">
+            <div>
+              <h2>Conversation</h2>
+              <p>Model: <%= defaultModel %> | Language hint: <%= defaultLanguageHint %></p>
+            </div>
+          </div>
+
+          <section class="panel draft-card">
+            <h3>Current live draft</h3>
+            <div class="draft-card__box" data-draft-text></div>
+          </section>
+
+          <section class="turn-list" data-turn-list></section>
+          <section class="empty-state" data-empty-state>
+            No turns yet. Record the first side of the conversation to start building the transcript.
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
