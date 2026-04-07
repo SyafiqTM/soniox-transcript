@@ -67,6 +67,10 @@
 
 html, body { height: 100%; }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   font-family: 'Space Mono', 'Courier New', monospace;
   font-size: 13px;
@@ -347,6 +351,7 @@ code {
   background: var(--surface);
   border-right: 3px solid var(--border-2);
   overflow: hidden;
+  min-height: 0;
 }
 
 .search-panel__header {
@@ -492,6 +497,8 @@ code {
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* Status bar */
@@ -561,6 +568,7 @@ code {
 /* Scrollable conversation area */
 .conversation-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 20px 24px 32px;
   display: flex;
@@ -577,7 +585,7 @@ code {
   border: 2px dashed var(--recording);
   padding: 14px 16px;
   flex-shrink: 0;
-  margin-bottom: 20px;
+  margin: 20px 24px 0;
 }
 
 .draft-label {
@@ -797,4 +805,3 @@ code {
 
   .topbar::before { display: none; }
 }
-
