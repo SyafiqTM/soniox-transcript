@@ -81,7 +81,12 @@ function validateSessionPayload(body) {
   };
 }
 
-export function createApp({ sonioxService, sessionStore }) {
+export function createApp({
+  sonioxService,
+  sessionStore,
+  openaiService = null,
+  elevenlabsService = null
+}) {
   const app = express();
 
   app.set("view engine", "ejs");
@@ -157,6 +162,50 @@ export function createApp({ sonioxService, sessionStore }) {
       res.render("session", {
         pageTitle: `Session ${session.id}`,
         session
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/voicebot", (req, res) => {
+    res.render("voicebot", { pageTitle: "Voicebot" });
+  });
+
+  app.post("/api/voicebot/reply", async (req, res, next) => {
+    try {
+      if (!openaiService || !elevenlabsService) {
+        return res
+          .status(503)
+          .json({ error: "Voicebot services are not configured on this server." });
+      }
+
+      const { transcript, history = [] } = req.body;
+
+      if (!transcript || typeof transcript !== "string" || !transcript.trim()) {
+        return res.status(400).json({ error: "transcript is required." });
+      }
+
+      if (!Array.isArray(history)) {
+        return res.status(400).json({ error: "history must be an array." });
+      }
+
+      const t0 = Date.now();
+      const replyText = await openaiService.getReply(transcript.trim(), history);
+      const tLLM = Date.now() - t0;
+
+      const t1 = Date.now();
+      const audioBuffer = await elevenlabsService.textToSpeech(replyText);
+      const tTTS = Date.now() - t1;
+
+      console.log(
+        `[voicebot] LLM: ${tLLM}ms | TTS: ${tTTS}ms | total-backend: ${tLLM + tTTS}ms`
+      );
+
+      res.json({
+        replyText,
+        audio: audioBuffer.toString("base64"),
+        _timing: { llmMs: tLLM, ttsMs: tTTS }
       });
     } catch (error) {
       next(error);
